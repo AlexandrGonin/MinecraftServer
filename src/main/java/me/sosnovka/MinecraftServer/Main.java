@@ -1,6 +1,7 @@
 package me.sosnovka.MinecraftServer;
 
 import me.sosnovka.MinecraftServer.commands.GamemodeCommand;
+import me.sosnovka.MinecraftServer.instances.Lobby;
 import me.sosnovka.MinecraftServer.menus.LobbyMenu;
 import me.sosnovka.MinecraftServer.static_items.StaticMenuCompass;
 import net.minestom.server.MinecraftServer;
@@ -30,8 +31,6 @@ import java.util.concurrent.CompletableFuture;
 
 public class Main {
     public static void main(String[] args) {
-        Material[] reservedItems = {Material.fromNamespaceId("minecraft:clock"), Material.fromNamespaceId("minecraft:air")};
-
         MinecraftServer minecraftServer = MinecraftServer.init();
         InstanceManager instanceManager = MinecraftServer.getInstanceManager();
 
@@ -48,7 +47,6 @@ public class Main {
             System.out.println("✅ AnvilLoader настроен для сохранения мира");
         } catch (Exception e) {
             System.out.println("❌ Ошибка AnvilLoader: " + e.getMessage());
-            System.out.println("⚠️  Работаем без сохранения мира");
         }
 
         // Освещение
@@ -86,54 +84,56 @@ public class Main {
             System.out.println("💾 Автосохранение мира");
         }).repeat(TaskSchedule.tick(5000)).schedule();
 
-        // Обработчик игроков
-        GlobalEventHandler globalEventHandler = MinecraftServer.getGlobalEventHandler();
-        globalEventHandler.addListener(AsyncPlayerConfigurationEvent.class, event -> {
-            final Player player = event.getPlayer();
-            event.setSpawningInstance(instanceContainer);
-            player.setRespawnPoint(new Pos(0.5, 42, 0.5));
-            player.setGameMode(GameMode.ADVENTURE);
-            player.getInventory().setItemInHand(Player.Hand.MAIN, StaticMenuCompass.create());
-        });
+        new Lobby(instanceContainer);
 
-        // отображение оригинального скина игрока
-        globalEventHandler.addListener(PlayerSkinInitEvent.class, event -> {
-            final Player player = event.getPlayer();
-            String username = player.getUsername();
-            PlayerSkin skin = PlayerSkin.fromUsername(username);
-            event.setSkin(skin);
-        });
-
-        globalEventHandler.addListener(ItemDropEvent.class, event -> {
-            event.setCancelled(true);
-        });
-
-        globalEventHandler.addListener(InventoryPreClickEvent.class, event -> {
-            if (StaticMenuCompass.isMenuCompass(event.getClickedItem()) || event.getClickType() == ClickType.CHANGE_HELD) {
-                event.setCancelled(true);
-            }
-            System.out.println(event.getClickType());
-            System.out.println(event.getClickedItem());
-            });
-
-        globalEventHandler.addListener(PlayerSwapItemEvent.class, event -> {
-            event.setCancelled(true);
-        });
-
-        globalEventHandler.addListener(PlayerUseItemEvent.class, event -> {
-            ItemStack item = event.getItemStack();
-            if (StaticMenuCompass.isMenuCompass(item)) {
-                String menuTag = item.getTag(Tag.String("menu_compass"));
-                if ("true".equals(menuTag)) {
-                    event.setCancelled(true); // Отменяем стандартное действие
-
-                    // Открываем меню из LobbyMenu
-                    Inventory menu = LobbyMenu.createMenu();
-                    event.getPlayer().openInventory(menu);
-                    return;
-                }
-            }
-        });
+//        // Обработчик игроков
+//        GlobalEventHandler globalEventHandler = MinecraftServer.getGlobalEventHandler();
+//        globalEventHandler.addListener(AsyncPlayerConfigurationEvent.class, event -> {
+//            final Player player = event.getPlayer();
+//            event.setSpawningInstance(instanceContainer);
+//            player.setRespawnPoint(new Pos(0.5, 42, 0.5));
+//            player.setGameMode(GameMode.ADVENTURE);
+//            player.getInventory().setItemInHand(Player.Hand.MAIN, StaticMenuCompass.create());
+//        });
+//
+//        // отображение оригинального скина игрока
+//        globalEventHandler.addListener(PlayerSkinInitEvent.class, event -> {
+//            final Player player = event.getPlayer();
+//            String username = player.getUsername();
+//            PlayerSkin skin = PlayerSkin.fromUsername(username);
+//            event.setSkin(skin);
+//        });
+//
+//        globalEventHandler.addListener(ItemDropEvent.class, event -> {
+//            event.setCancelled(true);
+//        });
+//
+//        globalEventHandler.addListener(InventoryPreClickEvent.class, event -> {
+//            if (StaticMenuCompass.isMenuCompass(event.getClickedItem()) || event.getClickType() == ClickType.CHANGE_HELD) {
+//                event.setCancelled(true);
+//            }
+//            System.out.println(event.getClickType());
+//            System.out.println(event.getClickedItem());
+//            });
+//
+//        globalEventHandler.addListener(PlayerSwapItemEvent.class, event -> {
+//            event.setCancelled(true);
+//        });
+//
+//        globalEventHandler.addListener(PlayerUseItemEvent.class, event -> {
+//            ItemStack item = event.getItemStack();
+//            if (StaticMenuCompass.isMenuCompass(item)) {
+//                String menuTag = item.getTag(Tag.String("menu_compass"));
+//                if ("true".equals(menuTag)) {
+//                    event.setCancelled(true); // Отменяем стандартное действие
+//
+//                    // Открываем меню из LobbyMenu
+//                    Inventory menu = LobbyMenu.createMenu();
+//                    event.getPlayer().openInventory(menu);
+//                    return;
+//                }
+//            }
+//        });
 
         // Shutdown hook для сохранения при выключении
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
