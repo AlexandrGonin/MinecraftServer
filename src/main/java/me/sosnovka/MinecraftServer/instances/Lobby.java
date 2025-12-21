@@ -1,83 +1,114 @@
 package me.sosnovka.MinecraftServer.instances;
 
 import me.sosnovka.MinecraftServer.menus.LobbyMenu;
+import me.sosnovka.MinecraftServer.menus.NewModeMenu;
 import me.sosnovka.MinecraftServer.static_items.StaticMenuCompass;
-import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
-import net.minestom.server.entity.PlayerSkin;
-import net.minestom.server.event.Event;
-import net.minestom.server.event.EventNode;
-import net.minestom.server.event.inventory.InventoryPreClickEvent;
-import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
-import net.minestom.server.event.player.PlayerSkinInitEvent;
-import net.minestom.server.event.player.PlayerSwapItemEvent;
 import net.minestom.server.event.player.PlayerUseItemEvent;
-import net.minestom.server.instance.InstanceContainer;
+import net.minestom.server.instance.InstanceManager;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.inventory.Inventory;
 import net.minestom.server.inventory.click.ClickType;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.tag.Tag;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
-public class Lobby {
+public class Lobby extends PublicInstance {
 
-    // Простой конструктор, как в Main.java
-    public Lobby(InstanceContainer instanceContainer) {
-        // Создаем свою EventNode для этого лобби
-        EventNode<Event> lobbyEvents = EventNode.all("lobby");
+    private NewMode newMode;
+    private final Set<UUID> playersWithOpenMenu = new HashSet<>();
 
+    public Lobby(InstanceManager instanceManager) {
+        super("world_lobby", instanceManager, new Pos(0.5, 40, 0.5), "lobby");
+        setupLobbyRules();
+    }
 
-        // 1. Подключение игрока
-        lobbyEvents.addListener(AsyncPlayerConfigurationEvent.class, event -> {
-            final Player player = event.getPlayer();
+    private void setupLobbyRules() {
+        // Подключение игрока
+        eventNode.addListener(AsyncPlayerConfigurationEvent.class, event -> {
+            Player player = event.getPlayer();
             event.setSpawningInstance(instanceContainer);
-            player.setRespawnPoint(new Pos(0.5, 42, 0.5));
+            player.setRespawnPoint(spawnPoint);
             player.setGameMode(GameMode.ADVENTURE);
             player.getInventory().setItemInMainHand(StaticMenuCompass.create());
         });
 
-        // 2. Скины игроков
-        lobbyEvents.addListener(PlayerSkinInitEvent.class, event -> {
-            final Player player = event.getPlayer();
-            String username = player.getUsername();
-            PlayerSkin skin = PlayerSkin.fromUsername(username);
-            event.setSkin(skin);
-        });
-
-        // 3. Запрет выброса предметов
-        lobbyEvents.addListener(ItemDropEvent.class, event -> {
-            event.setCancelled(true);
-        });
-
-        // 4. Защита инвентаря
-        lobbyEvents.addListener(InventoryPreClickEvent.class, event -> {
+        // ОБЩАЯ ЗАЩИТА ИНВЕНТАРЯ
+        eventNode.addListener(net.minestom.server.event.inventory.InventoryPreClickEvent.class, event -> {
+            // 1. Защита от перемещения компаса и горячих клавиш
             if (StaticMenuCompass.isMenuCompass(event.getClickedItem()) ||
                     event.getClickType() == ClickType.CHANGE_HELD) {
                 event.setCancelled(true);
+                return;
             }
-        });
 
-        // 5. Запрет свапа предметов
-        lobbyEvents.addListener(PlayerSwapItemEvent.class, event -> {
-            event.setCancelled(true);
-        });
+            // 2. Защита меню
+            Player player = event.getPlayer();
+            if (playersWithOpenMenu.contains(player.getUuid())) {
+                // БЛОКИРУЕМ ВСЕ КЛИКИ В МЕНЮ
+                event.setCancelled(true);
 
-        // 6. Меню по ПКМ на компас
-        lobbyEvents.addListener(PlayerUseItemEvent.class, event -> {
-            ItemStack item = event.getItemStack();
-            if (StaticMenuCompass.isMenuCompass(item)) {
-                String menuTag = item.getTag(Tag.String("menu_compass"));
-                if ("true".equals(menuTag)) {
-                    event.setCancelled(true);
-                    Inventory menu = LobbyMenu.createMenu();
-                    event.getPlayer().openInventory(menu);
+                // Но проверяем, нажали ли на кнопку
+                ItemStack clicked = event.getClickedItem();
+                if (clicked != null && !clicked.isAir()) {
+                    String action = clicked.getTag(Tag.String("menu_action"));
+
+                    if (action != null) {
+                        // Обрабатываем кнопку в следующем тике, чтобы не было конфликта
+                        net.minestom.server.MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
+                            handleMenuButton(player, action);
+                        });
+                    }
                 }
             }
         });
 
-        // Подключаем события этого лобби к серверу
-        MinecraftServer.getGlobalEventHandler().addChild(lobbyEvents);
+        // Меню по ПКМ на компас
+        eventNode.addListener(PlayerUseItemEvent.class, event -> {
+            ItemStack item = event.getItemStack();
+            if (StaticMenuCompass.isMenuCompass(item)) {
+                event.setCancelled(true);
+
+                Player player = event.getPlayer();
+                openLobbyMenu(player);
+            }
+        });
+
+        // Сброс при закрытии инвентаря
+        eventNode.addListener(net.minestom.server.event.inventory.InventoryCloseEvent.class, event -> {
+            Player player = (Player) event.getPlayer();
+            playersWithOpenMenu.remove(player.getUuid());
+        });
+    }
+
+    private void openLobbyMenu(Player player) {
+        Inventory menu = LobbyMenu.createMenu();
+        player.openInventory(menu);
+        playersWithOpenMenu.add(player.getUuid());
+    }
+
+    private void openNewModeMenu(Player player) {
+        Inventory menu = NewModeMenu.createMenu();
+        player.openInventory(menu);
+        playersWithOpenMenu.add(player.getUuid());
+    }
+
+    private void handleMenuButton(Player player, String action) {
+        if ("select_newmode".equals(action)) {
+            player.closeInventory();
+            openNewModeMenu(player);
+        } else if ("start_newmode".equals(action) && newMode != null) {
+            player.closeInventory();
+            playersWithOpenMenu.remove(player.getUuid());
+            newMode.teleportPlayer(player);
+        }
+    }
+
+    public void setNewMode(NewMode newMode) {
+        this.newMode = newMode;
     }
 }

@@ -6,13 +6,12 @@ import net.minestom.server.tag.Tag;
 import net.kyori.adventure.text.Component;
 
 public class StaticMenuCompass {
-    // Создание компаса
     public static ItemStack create() {
-        final Tag<String> MENU_COMPASS_ITEM_TAG = Tag.String("menu_compass");
-        return ItemStack.of(Material.COMPASS, 1).withTag(MENU_COMPASS_ITEM_TAG, "true");
+        return ItemStack.of(Material.COMPASS, 1)
+                .withTag(Tag.String("menu_compass"), "true")
+                .withCustomName(Component.text("Меню")); // Исправлено на withDisplayName
     }
 
-    // Проверка компаса
     public static boolean isMenuCompass(ItemStack item) {
         return item != null &&
                 !item.isAir() &&
