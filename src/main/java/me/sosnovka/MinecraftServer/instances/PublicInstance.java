@@ -18,6 +18,7 @@ import net.minestom.server.inventory.click.ClickType;
 import net.minestom.server.timer.TaskSchedule;
 import net.minestom.server.instance.anvil.AnvilLoader;
 
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 
 public class PublicInstance {
@@ -37,65 +38,63 @@ public class PublicInstance {
         setupInstance();
         setupCommonRules();
 
-        // Подключаем к серверу
         MinecraftServer.getGlobalEventHandler().addChild(eventNode);
     }
 
     private void setupInstance() {
-        // Сохранение мира
+        // Загрузка мира
         try {
             instanceContainer.setChunkLoader(new AnvilLoader(worldName));
-            System.out.println("✅ Мир '" + worldName + "' настроен");
+            System.out.println("Мир " + worldName + " загружен");
         } catch (Exception e) {
-            System.out.println("❌ Ошибка загрузки мира '" + worldName + "': " + e.getMessage());
+            System.out.println("Мир " + worldName + " не найден, создается новый");
+            instanceContainer.setGenerator(unit -> {
+                unit.modifier().fillHeight(0, 40, Block.GRASS_BLOCK);
+            });
         }
 
-        // ОСВЕЩЕНИЕ - ВАЖНО!
+        // Освещение
         instanceContainer.setChunkSupplier(LightingChunk::new);
 
-        // Одинаковый генератор для всех (трава)
-        instanceContainer.setGenerator(unit -> {
-            unit.modifier().fillHeight(0, 40, Block.GRASS_BLOCK);
-        });
-
-        // ПРЕДЗАГРУЗКА БОЛЬШЕ ЧАНКОВ ДЛЯ ОСВЕЩЕНИЯ
+        // Предзангрузка и освещение
         CompletableFuture.runAsync(() -> {
-            int radius = 8; // УВЕЛИЧИЛ РАДИУС ДО 8 (было 5)
-            int loaded = 0;
+            var chunks = new ArrayList<CompletableFuture<Chunk>>();
+            int radius = 32;
+
+            // Загружаем чанки в радиусе 32 от точки спавна
+            int chunkX = (int) Math.floor(spawnPoint.x() / 16);
+            int chunkZ = (int) Math.floor(spawnPoint.z() / 16);
 
             for (int x = -radius; x <= radius; x++) {
                 for (int z = -radius; z <= radius; z++) {
-                    instanceContainer.loadChunk(x, z);
-                    loaded++;
+                    chunks.add(instanceContainer.loadChunk(chunkX + x, chunkZ + z));
                 }
             }
-            System.out.println("✅ Загружено " + loaded + " чанков в мире '" + worldName + "'");
+
+            CompletableFuture.allOf(chunks.toArray(CompletableFuture[]::new)).join();
+            System.out.println("Загружено " + chunks.size() + " чанков для " + worldName);
+
+            // Предварительный расчет освещения
+            LightingChunk.relight(instanceContainer, instanceContainer.getChunks());
+            System.out.println("Освещение рассчитано для " + worldName);
         });
 
         // Бесконечный день
         MinecraftServer.getSchedulerManager().buildTask(() -> {
             instanceContainer.setTime(6000);
             instanceContainer.setTimeRate(0);
-        }).delay(TaskSchedule.tick(60)).schedule(); // УВЕЛИЧИЛ ЗАДЕРЖКУ ДО 3 СЕКУНД
-
-        // Автосохранение
-        MinecraftServer.getSchedulerManager().buildTask(() -> {
-            instanceContainer.saveChunksToStorage();
-        }).repeat(TaskSchedule.tick(5000)).schedule();
+        }).delay(TaskSchedule.tick(20)).schedule();
     }
 
     protected void setupCommonRules() {
-        // Запрет выброса предметов
         eventNode.addListener(ItemDropEvent.class, event -> {
             event.setCancelled(true);
         });
 
-        // Запрет свапа предметов
         eventNode.addListener(PlayerSwapItemEvent.class, event -> {
             event.setCancelled(true);
         });
 
-        // Скины игроков
         eventNode.addListener(PlayerSkinInitEvent.class, event -> {
             Player player = event.getPlayer();
             PlayerSkin skin = PlayerSkin.fromUsername(player.getUsername());

@@ -28,7 +28,6 @@ public class Lobby extends PublicInstance {
     }
 
     private void setupLobbyRules() {
-        // Подключение игрока
         eventNode.addListener(AsyncPlayerConfigurationEvent.class, event -> {
             Player player = event.getPlayer();
             event.setSpawningInstance(instanceContainer);
@@ -37,48 +36,41 @@ public class Lobby extends PublicInstance {
             player.getInventory().setItemInMainHand(StaticMenuCompass.create());
         });
 
-        // ОБЩАЯ ЗАЩИТА ИНВЕНТАРЯ
         eventNode.addListener(net.minestom.server.event.inventory.InventoryPreClickEvent.class, event -> {
-            // 1. Защита от перемещения компаса и горячих клавиш
             if (StaticMenuCompass.isMenuCompass(event.getClickedItem()) ||
                     event.getClickType() == ClickType.CHANGE_HELD) {
                 event.setCancelled(true);
                 return;
             }
 
-            // 2. Защита меню
             Player player = event.getPlayer();
             if (playersWithOpenMenu.contains(player.getUuid())) {
-                // БЛОКИРУЕМ ВСЕ КЛИКИ В МЕНЮ
                 event.setCancelled(true);
 
-                // Но проверяем, нажали ли на кнопку
                 ItemStack clicked = event.getClickedItem();
                 if (clicked != null && !clicked.isAir()) {
                     String action = clicked.getTag(Tag.String("menu_action"));
 
                     if (action != null) {
-                        // Обрабатываем кнопку в следующем тике, чтобы не было конфликта
+                        Player finalPlayer = player;
+                        String finalAction = action;
                         net.minestom.server.MinecraftServer.getSchedulerManager().scheduleNextTick(() -> {
-                            handleMenuButton(player, action);
+                            handleMenuButton(finalPlayer, finalAction);
                         });
                     }
                 }
             }
         });
 
-        // Меню по ПКМ на компас
         eventNode.addListener(PlayerUseItemEvent.class, event -> {
             ItemStack item = event.getItemStack();
             if (StaticMenuCompass.isMenuCompass(item)) {
                 event.setCancelled(true);
-
                 Player player = event.getPlayer();
                 openLobbyMenu(player);
             }
         });
 
-        // Сброс при закрытии инвентаря
         eventNode.addListener(net.minestom.server.event.inventory.InventoryCloseEvent.class, event -> {
             Player player = (Player) event.getPlayer();
             playersWithOpenMenu.remove(player.getUuid());
