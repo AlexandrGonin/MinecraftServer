@@ -26,12 +26,6 @@ public class NewModeMenu {
                 .customName(Component.text("Начать игру")
                         .color(TextColor.color(0x55FF55))
                         .decorate(TextDecoration.BOLD))
-                .lore(java.util.List.of(
-                        Component.text("Нажмите чтобы войти в NewMode"),
-                        Component.text(""),
-                        Component.text("Режим выживания")
-                                .color(TextColor.color(0xAAAAAA))
-                ))
                 .build()
                 .withTag(Tag.String("menu_action"), "start_newmode"); // Тег для старта
 
@@ -40,7 +34,7 @@ public class NewModeMenu {
             menu.setItemStack(i, glassPane);
         }
 
-        // Звезда в центре (слот 13)
+        // Звезда в центре
         menu.setItemStack(13, startGameStar);
 
         return menu;

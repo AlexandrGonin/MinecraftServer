@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 
 public class PublicInstance {
-
     protected final InstanceContainer instanceContainer;
     protected final EventNode<Event> eventNode;
     protected final Pos spawnPoint;
@@ -87,14 +86,6 @@ public class PublicInstance {
     }
 
     protected void setupCommonRules() {
-        eventNode.addListener(ItemDropEvent.class, event -> {
-            event.setCancelled(true);
-        });
-
-        eventNode.addListener(PlayerSwapItemEvent.class, event -> {
-            event.setCancelled(true);
-        });
-
         eventNode.addListener(PlayerSkinInitEvent.class, event -> {
             Player player = event.getPlayer();
             PlayerSkin skin = PlayerSkin.fromUsername(player.getUsername());

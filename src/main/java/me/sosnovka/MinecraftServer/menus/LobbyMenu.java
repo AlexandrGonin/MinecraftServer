@@ -1,5 +1,7 @@
 package me.sosnovka.MinecraftServer.menus;
 
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.minestom.server.inventory.Inventory;
 import net.minestom.server.inventory.InventoryType;
 import net.minestom.server.item.ItemStack;
@@ -18,9 +20,11 @@ public class LobbyMenu {
                 .build();
 
         ItemStack NewGame = ItemStack.builder(Material.EMERALD)
-                .customName(Component.text("NewMode"))
+                .customName(Component.text("Новый режим")
+                        .color(TextColor.color(0x55FF55))
+                        .decorate(TextDecoration.BOLD))
                 .build()
-                .withTag(Tag.String("menu_action"), "select_newmode"); // Изменил тег
+                .withTag(Tag.String("menu_action"), "select_newmode");
 
         for (int i = 0; i < 27; i++) {
             menu.setItemStack(i, glassPane);

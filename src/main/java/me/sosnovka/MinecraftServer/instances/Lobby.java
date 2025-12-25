@@ -3,13 +3,17 @@ package me.sosnovka.MinecraftServer.instances;
 import me.sosnovka.MinecraftServer.menus.LobbyMenu;
 import me.sosnovka.MinecraftServer.menus.NewModeMenu;
 import me.sosnovka.MinecraftServer.static_items.StaticMenuCompass;
+import net.minestom.server.entity.EquipmentSlot;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
+import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
+import net.minestom.server.event.player.PlayerSwapItemEvent;
 import net.minestom.server.event.player.PlayerUseItemEvent;
 import net.minestom.server.instance.InstanceManager;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.inventory.Inventory;
+import net.minestom.server.inventory.click.Click;
 import net.minestom.server.inventory.click.ClickType;
 import net.minestom.server.item.ItemStack;
 import net.minestom.server.tag.Tag;
@@ -23,7 +27,7 @@ public class Lobby extends PublicInstance {
     private final Set<UUID> playersWithOpenMenu = new HashSet<>();
 
     public Lobby(InstanceManager instanceManager) {
-        super("world_lobby", instanceManager, new Pos(0.5, 40, 0.5), "lobby");
+        super("world_lobby", instanceManager, new Pos(0, 40, 0), "lobby");
         setupLobbyRules();
     }
 
@@ -33,14 +37,20 @@ public class Lobby extends PublicInstance {
             event.setSpawningInstance(instanceContainer);
             player.setRespawnPoint(spawnPoint);
             player.setGameMode(GameMode.ADVENTURE);
-            player.getInventory().setItemInMainHand(StaticMenuCompass.create());
+            player.getInventory().setEquipment(EquipmentSlot.MAIN_HAND, player.getHeldSlot(), StaticMenuCompass.create());
         });
 
         eventNode.addListener(net.minestom.server.event.inventory.InventoryPreClickEvent.class, event -> {
-            if (StaticMenuCompass.isMenuCompass(event.getClickedItem()) ||
-                    event.getClickType() == ClickType.CHANGE_HELD) {
+            Click click = event.getClick();
+            if (click instanceof Click.RightDrag ||
+                    click instanceof Click.LeftDrag ||
+                    click instanceof Click.LeftShift ||
+                    click instanceof Click.RightShift ||
+                    click instanceof Click.OffhandSwap ||
+                    click instanceof Click.HotbarSwap ||
+                    click instanceof Click.Left ||
+                    click instanceof Click.Right) {
                 event.setCancelled(true);
-                return;
             }
 
             Player player = event.getPlayer();
@@ -60,6 +70,14 @@ public class Lobby extends PublicInstance {
                     }
                 }
             }
+        });
+
+        eventNode.addListener(ItemDropEvent.class, event -> {
+            event.setCancelled(true);
+        });
+
+        eventNode.addListener(PlayerSwapItemEvent.class, event -> {
+            event.setCancelled(true);
         });
 
         eventNode.addListener(PlayerUseItemEvent.class, event -> {

@@ -9,7 +9,7 @@ import net.minestom.server.coordinate.Pos;
 public class NewMode extends PublicInstance {
 
     public NewMode(InstanceManager instanceManager) {
-        super("world_newmode", instanceManager, new Pos(0.5, 40, 0.5), "newmode");
+        super("world_newmode", instanceManager, new Pos(0, 40, 0), "newmode");
         setupNewModeRules();
     }
 
@@ -18,14 +18,14 @@ public class NewMode extends PublicInstance {
             Player player = event.getPlayer();
             event.setSpawningInstance(instanceContainer);
             player.setRespawnPoint(spawnPoint);
-            player.setGameMode(GameMode.SURVIVAL);
+            player.setGameMode(GameMode.ADVENTURE);
             player.getInventory().clear();
         });
     }
 
     public void teleportPlayer(Player player) {
         player.setInstance(instanceContainer, spawnPoint);
-        player.setGameMode(GameMode.SURVIVAL);
+        player.setGameMode(GameMode.ADVENTURE);
         player.getInventory().clear();
         player.sendMessage("§aВы вошли в NewMode");
     }

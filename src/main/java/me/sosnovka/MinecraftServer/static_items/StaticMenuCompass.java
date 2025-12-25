@@ -9,7 +9,7 @@ public class StaticMenuCompass {
     public static ItemStack create() {
         return ItemStack.of(Material.COMPASS, 1)
                 .withTag(Tag.String("menu_compass"), "true")
-                .withCustomName(Component.text("Меню")); // Исправлено на withDisplayName
+                .withCustomName(Component.text("Меню"));
     }
 
     public static boolean isMenuCompass(ItemStack item) {
