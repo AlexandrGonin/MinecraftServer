@@ -34,7 +34,7 @@ public class PublicInstance {
         setupInstance();
         setupCommonRules();
 
-        // Регистрируем ВСЕ события этого инстанса в глобальный обработчик
+        // Регистрируем события этого инстанса в глобальный обработчик
         MinecraftServer.getGlobalEventHandler().addChild(eventNode);
     }
 
