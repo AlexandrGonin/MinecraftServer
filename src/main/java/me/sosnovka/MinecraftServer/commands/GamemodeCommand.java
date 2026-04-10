@@ -10,10 +10,12 @@ public class GamemodeCommand extends Command{
     public GamemodeCommand(){
         super("gamemode", "gm");
 
+        // При неверном исопльнении команды
         setDefaultExecutor((sender, context) -> {
-            sender.sendMessage("Неверное исполнение, попробуйте /gamemode <режим игры>");
+            sender.sendMessage("Incorrect using, please try /gamemode <game mode>");
         });
 
+        // Обработка выбранного режима и его установки
         var gamemodeArg = ArgumentType.Integer("gamemode");
 
         addSyntax((sender, context) -> {

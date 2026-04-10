@@ -8,6 +8,7 @@ version = '1.0'
 
 repositories {
     mavenCentral()
+    maven { url = uri("https://repo.spongepowered.org/maven/") }
 }
 
 dependencies {
@@ -15,7 +16,7 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     implementation('net.minestom:minestom:2025.12.20c-1.21.11')
-
+    implementation("io.github.togar2:MinestomPvP:2025.12.29-1.21.11")
     implementation 'org.slf4j:slf4j-api:2.0.9'
     implementation 'ch.qos.logback:logback-classic:1.4.14'
 }

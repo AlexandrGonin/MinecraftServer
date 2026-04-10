@@ -9,9 +9,10 @@ public class StaticMenuCompass {
     public static ItemStack create() {
         return ItemStack.of(Material.COMPASS, 1)
                 .withTag(Tag.String("menu_compass"), "true")
-                .withCustomName(Component.text("Меню"));
+                .withCustomName(Component.text("Menu"));
     }
 
+    // Функция проверки на подлинность компаса
     public static boolean isMenuCompass(ItemStack item) {
         return item != null &&
                 !item.isAir() &&
